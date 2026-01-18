@@ -105,7 +105,7 @@ results/
 YYYY: Year
 
 ## Contact
-Yiling Cai
+Yiling Cai  
 School of Geography and Remote Sensing, Guangzhou University, Guangzhou 510006, China; Guangdong Guodi Science Technology Co., Ltd, Guangzhou 510075, China;
 caiyling6@alumni.sysu.edu.cn
 
