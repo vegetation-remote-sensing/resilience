@@ -26,7 +26,7 @@ This project contains Python scripts for time series analysis and machine learni
 - scikit-learn >= 0.24.0
 - shap >= 0.39.0
 
-##Install dependencies using:
+## Install dependencies using:
 ```bash
 pip install pandas numpy scipy statsmodels xgboost scikit-learn shap
 
@@ -147,7 +147,7 @@ smooth_length: Length of seasonal smoother (default: 7)
 
 n_processes: Number of parallel processes (default: 50)
 
-##Workflow
+## Workflow
 
 1. Data Preprocessing
 
@@ -175,7 +175,7 @@ python XGBoost_SHAP_ADs.py
 
 -Generates SHAP interpretations
 
-##Configuration
+## Configuration
 
 Before running the scripts, update the following paths in each file:
 
@@ -185,7 +185,7 @@ input_path = "./path/to/input/data/"
 
 output_path = "./path/to/output/"
 
-##Contact
+## Contact
 
 Author: Yiling Cai
 
