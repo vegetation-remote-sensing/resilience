@@ -13,32 +13,32 @@ Statistics and Machine Learning Toolbox
 Parallel Computing Toolbox (optional, for performance)
 
 ## Methods
-1. Abrupt Decline (AD) Event Detection
+# 1. Abrupt Decline (AD) Event Detection
 AD events are identified using threshold-based anomaly detection:
-①　Calculate mean growing-season kNDVI (May-September) for each pixel (2000-2022)
-②　Remove linear trends from the time series
-③　Define baseline statistics (μ, σ) from baseline period (2000-2009)
-④　Classify AD pixels: kNDVI < μ - nσ, where n ∈ [1,6]
-⑤　Classify noAD pixels: kNDVI > μ - nσ/m, where m ∈ [2,6]
-2. Resilience Trend Analysis
+-　Calculate mean growing-season kNDVI (May-September) for each pixel (2000-2022)
+-　Remove linear trends from the time series
+-　Define baseline statistics (μ, σ) from baseline period (2000-2009)
+-　Classify AD pixels: kNDVI < μ - nσ, where n ∈ [1,6]
+-　Classify noAD pixels: kNDVI > μ - nσ/m, where m ∈ [2,6]
+# 2. Resilience Trend Analysis
 Temporal changes in vegetation resilience are quantified using:
-①　AR(1) coefficient (Temporal Autocorrelation - TAC) as resilience indicator
-②　Sen's slope estimator (δTAC - non-parametric trend magnitude)
-③　Mann-Kendall test (statistical significance, α = 0.05)
-④　Rolling window analysis (cumulative from baseline to year t-1)
+-　AR(1) coefficient (Temporal Autocorrelation - TAC) as resilience indicator
+-　Sen's slope estimator (δTAC - non-parametric trend magnitude)
+-　Mann-Kendall test (statistical significance, α = 0.05)
+-　Rolling window analysis (cumulative from baseline to year t-1)
 Output classification:
-①　-2: Significant declining resilience
-②　-1: Non-significant decline
-③　0: No trend
-④　+1: Non-significant increase
-⑤　+2: Significant increasing resilience
-3. Paired AD-noAD Metric Extraction
+-　-2: Significant declining resilience
+-　-1: Non-significant decline
+-　0: No trend
+-　+1: Non-significant increase
+-　+2: Significant increasing resilience
+# 3. Paired AD-noAD Metric Extraction
 For each AD pixel, the code:
-①　Identifies year of first AD occurrence (t)
-②　Extracts pre-event resilience metrics at t-1 (δTAC and TAC)
-③　Defines control group from spatial neighborhood (5×5, 7×7, or 9×9 window)
-④　Calculates mean resilience metrics for noAD pixels
-⑤　Creates matched case-control pairs for comparison
+-　Identifies year of first AD occurrence (t)
+-　Extracts pre-event resilience metrics at t-1 (δTAC and TAC)
+-　Defines control group from spatial neighborhood (5×5, 7×7, or 9×9 window)
+-　Calculates mean resilience metrics for noAD pixels
+-　Creates matched case-control pairs for comparison
 Purpose: Test whether declining resilience (AD_δTAC > noAD_δTAC) precedes abrupt decline events.
 
 ## Installation
