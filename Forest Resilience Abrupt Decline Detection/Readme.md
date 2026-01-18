@@ -1,18 +1,18 @@
-##Overview
+## Overview
 This code implements a spatially explicit case-control methodology for detecting abrupt decline (AD) events in forest vegetation and analyzing whether declining resilience serves as an early warning signal. The analysis uses satellite-derived vegetation indices to compare resilience trends between pixels that experienced abrupt decline and neighboring stable control pixels.
 
-##Citation
+## Citation
 If you use this code, please cite:
 [paper citation - to be added upon publication]
 
-##Requirements
+## Requirements
 MATLAB R2020a or later
 Image Processing Toolbox
 Mapping Toolbox
 Statistics and Machine Learning Toolbox
 Parallel Computing Toolbox (optional, for performance)
 
-##Methods
+## Methods
 1. Abrupt Decline (AD) Event Detection
 AD events are identified using threshold-based anomaly detection:
 ①　Calculate mean growing-season kNDVI (May-September) for each pixel (2000-2022)
@@ -41,14 +41,14 @@ For each AD pixel, the code:
 ⑤　Creates matched case-control pairs for comparison
 Purpose: Test whether declining resilience (AD_δTAC > noAD_δTAC) precedes abrupt decline events.
 
-##Installation
+## Installation
 % Add code to MATLAB path
 addpath(genpath('./'));
 savepath;
 
-##Data Preparation
+## Data Preparation
 
-#Input Requirements
+# Input Requirements
 1. Growing Season kNDVI Maps
 Format: GeoTIFF (.tif)
 Coverage: Annual maps (2000-2022)
@@ -64,7 +64,7 @@ Format: GeoTIFF (.tif)
 Content: Land mask (0 = valid pixels)
 Must match spatial dimensions of input data
 
-#Directory Structure
+# Directory Structure
 project_root/
 ├── data/
 │   ├── kNDVI_growing_season/
@@ -78,12 +78,12 @@ project_root/
 ├── extract_paired_AD_noAD_resilience.m
 └── example_run.m
 
-##Usage
-#Quick Start
+## Usage
+# Quick Start
 % Run complete workflow
 example_run
 
-#Output Structure
+# Output Structure
 results/
 ├── AD_noAD_classification/
 │   └── AD_noAD_classification_sigma[n]div[m]_YYYY.tif
@@ -98,13 +98,13 @@ results/
 └── noAD_count/
     └── noAD_sigma[n]div[m]_WS[size].tif
 
-#File naming:
+# File naming:
 [n]: Sigma threshold (1-6)
 [m]: Buffer parameter (2-6)
 [size]: Window size (05, 07, 09)
 YYYY: Year
 
-##Contact
+## Contact
 Yiling Cai
 School of Geography and Remote Sensing, Guangzhou University, Guangzhou 510006, China; Guangdong Guodi Science Technology Co., Ltd, Guangzhou 510075, China;
 caiyling6@alumni.sysu.edu.cn
