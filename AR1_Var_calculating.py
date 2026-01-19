@@ -112,7 +112,7 @@ def sliding_window_analysis(timeseries, series_id, window_size):
         return None, None
 
 
-def process_series(input_file, output_dir, series_id, window_size, date_start, date_end):
+def process_series(input_file, output_dir, vegetation_index, series_id, window_size, date_start, date_end):
     """
         Process a single time series to calculate AR1 and variance.
 
@@ -129,13 +129,13 @@ def process_series(input_file, output_dir, series_id, window_size, date_start, d
     """
     try:
         # Define output paths
-        ar1_dir = output_dir + "AR1_WS" + str(window_size) + "/"
+        ar1_dir = output_dir + vegetation_index + "_AR1_" + str(window_size) + "/"
         Path(ar1_dir).mkdir(parents=True, exist_ok=True)
-        ar1_file = "AR1_" + str(series_id).zfill(7) + ".csv"
+        ar1_file = vegetation_index + "_AR1_" + str(window_size) + "_STL_" + str(series_id).zfill(7) + ".csv"
 
-        var_dir = output_dir + "Var_WS" + str(window_size) + "/"
+        var_dir = output_dir + vegetation_index + "_Var_" + str(window_size) + "/"
         Path(var_dir).mkdir(parents=True, exist_ok=True)
-        var_file = "Var_" + str(series_id).zfill(7) + ".csv"
+        var_file = vegetation_index + "_Var_" + str(window_size) + "_STL_" + str(series_id).zfill(7) + ".csv"
 
         # Skip if already processed
         if Path(ar1_file).exists() and Path(var_file).exists():
@@ -176,12 +176,13 @@ if __name__ == '__main__':
     # Initialize
     n_processes = 50
     window_sizes = [36, 48, 60, 72, 84]
+    vegetation_index = "kNDVI"
     y_start = 1982
     y_end = 2022
     date_start = "-".join([str(y1), "01", "01"])
     date_end = "-".join([str(y2), "12", "01"])
 
-    catalog_file = "./path/to/input/data.csv"
+    catalog_file = "./path/to/input/kndvi_data.csv"
     input_dir = "./path/to/input/residual/files/"
     output_dir = "./path/to/output/"
 
@@ -197,14 +198,15 @@ if __name__ == '__main__':
         MyPool = multiprocessing.Pool(processes=pp)
         ResultsList = []
         for series_id in series_list:
-            input_file = input_dir + "resid_" + str(series_id).zfill(7) + ".csv"
+            input_file = input_dir + vegetation_index + "_STL_resid_" + str(series_id).zfill(7) + ".csv"
             if not Path(input_file).exists():
                 print(f"Input file not found: {input_file}")
                 continue
 
-            u = MyPool.apply_async(process_series, (input_file, output_dir, series_id, window_size,
+            u = MyPool.apply_async(process_series, (input_file, output_dir, vegetation_index, series_id, window_size,
                                                     date_start, date_end,))
             ResultsList.append(u)
         MyPool.close()
         MyPool.join()
+
 
