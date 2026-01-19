@@ -100,7 +100,7 @@ def perform_stl(series, period, smooth_length, series_id):
         print(f"STL decomposition failed for series {series_id}: {e}")
         return None
 
-def decompose_series(series_id, data, date_start, date_end, period, smooth_length, output_dir):
+def decompose_series(vegetation_index, series_id, data, date_start, date_end, period, smooth_length, output_dir):
     """
         Decompose a single time series and save results.
 
@@ -137,17 +137,17 @@ def decompose_series(series_id, data, date_start, date_end, period, smooth_lengt
         # Save results
         outpath_trend = output_dir + "trend/"
         Path(outpath_trend).mkdir(parents=True, exist_ok=True)
-        filename_trend = "_".join(["trend", str(series_id).zfill(7)]) + ".csv"
+        filename_trend = "_".join([vegetation_index, "STL", "trend", str(series_id).zfill(7)]) + ".csv"
         df_trend.to_csv(outpath_trend + filename_trend, sep=',')
 
         outpath_season = output_dir + "\\season\\"
         Path(outpath_season).mkdir(parents=True, exist_ok=True)
-        filename_season = "_".join(["season", str(series_id).zfill(7)]) + ".csv"
+        filename_season = "_".join([vegetation_index, "STL", "season", str(series_id).zfill(7)]) + ".csv"
         df_seasonal.to_csv(outpath_season + filename_season, sep=',')
 
         outpath_resid = output_dir + "\\resid\\"
         Path(outpath_resid).mkdir(parents=True, exist_ok=True)
-        filename_resid = "_".join(["resid", str(series_id).zfill(7)]) + ".csv"
+        filename_resid = "_".join([vegetation_index, "STL", "resid", str(series_id).zfill(7)]) + ".csv"
         df_resid.to_csv(outpath_resid + filename_resid, sep=',')
 
         print(f"Successfully processed series {series_id}")
@@ -164,12 +164,13 @@ if __name__ == '__main__':
     n_processes = 50
     period = 12
     smooth_length = 7
+    vegetation_index = "kNDVI"
     y_start = 1982
     y_end = 2022
     date_start = "-".join([str(y1), "01", "01"])
     date_end = "-".join([str(y2), "12", "01"])
 
-    input_file = "./path/to/input/data.csv"
+    input_file = "./path/to/input/kndvi_data.csv"
     output_dir = "./path/to/output/"
 
     # Load input data
@@ -181,8 +182,9 @@ if __name__ == '__main__':
     MyPool = multiprocessing.Pool(processes=n_processes)
     ResultsList = []
     for series_id in series_ids:
-            u = MyPool.apply_async(decompose_series, (series_id, data, date_start, date_end,
+            u = MyPool.apply_async(decompose_series, (vegetation_index, series_id, data, date_start, date_end,
                                                       period, smooth_length, output_dir,))
             ResultsList.append(u)
     MyPool.close()
     MyPool.join()
+
