@@ -262,3 +262,11 @@ Institution: School of Geography and Remote Sensing, Guangzhou University, Guang
             Guangdong Guodi Science Technology Co., Ltd, Guangzhou 510075, China
 
 Email: caiyling6@alumni.sysu.edu.cn
+
+# License
+
+This project is licensed under the GNU GPLv3 License - see the LICENSE file for details.
+
+# Version History
+
+v1.0.0 (2026-01-16): Initial release
