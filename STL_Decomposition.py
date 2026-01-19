@@ -140,12 +140,12 @@ def decompose_series(vegetation_index, series_id, data, date_start, date_end, pe
         filename_trend = "_".join([vegetation_index, "STL", "trend", str(series_id).zfill(7)]) + ".csv"
         df_trend.to_csv(outpath_trend + filename_trend, sep=',')
 
-        outpath_season = output_dir + "\\season\\"
+        outpath_season = output_dir + "season/"
         Path(outpath_season).mkdir(parents=True, exist_ok=True)
         filename_season = "_".join([vegetation_index, "STL", "season", str(series_id).zfill(7)]) + ".csv"
         df_seasonal.to_csv(outpath_season + filename_season, sep=',')
 
-        outpath_resid = output_dir + "\\resid\\"
+        outpath_resid = output_dir + "resid/"
         Path(outpath_resid).mkdir(parents=True, exist_ok=True)
         filename_resid = "_".join([vegetation_index, "STL", "resid", str(series_id).zfill(7)]) + ".csv"
         df_resid.to_csv(outpath_resid + filename_resid, sep=',')
@@ -187,4 +187,5 @@ if __name__ == '__main__':
             ResultsList.append(u)
     MyPool.close()
     MyPool.join()
+
 
