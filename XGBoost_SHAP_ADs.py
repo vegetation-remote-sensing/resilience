@@ -28,7 +28,7 @@ param_dist = {
 }
 
 # load data
-data_file = "{input_path}/data.csv"
+data_file = "{input_path}/xgb_data.csv"
 data = pd.read_csv(data_file)
 x_columns = ['X1', 'X2', 'X3', 'X4', 'X5', '...']  # features
 y_column = 'Y' #target
@@ -83,3 +83,4 @@ shap_importance_df.to_csv(f"{output_path}/shap_importance.csv", index=False)
 
 # 显示前10个最重要特征
 print(shap_importance_df.head(10))
+
