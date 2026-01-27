@@ -152,7 +152,7 @@ def decompose_series(vegetation_index, series_id, data, date_start, date_end, pe
 
         print(f"Successfully processed series {series_id}")
         del df_series, df_trend, df_seasonal, df_resid, res
-        del outpath_trend, filename_trend, outpath_season, filename_season, outpath_resid, outpath_resid
+        del outpath_trend, filename_trend, outpath_season, filename_season, outpath_resid, filename_resid
         gc.collect()
         return True
     except Exception as e:
@@ -188,6 +188,7 @@ if __name__ == '__main__':
       ResultsList.append(u)
     MyPool.close()
     MyPool.join()
+
 
 
 
