@@ -46,7 +46,7 @@ python STL_Decomposition.py
 
 ### Input:
 
-Time series data in CSV format
+Time series data in CSV format  ## './input/kndvi_data.csv'
 
 ### Output:
 
@@ -70,11 +70,11 @@ vegetation_index: vegetation index (default: kNDVI)
 
 ## 2. AR1_Var_calculating.py
 
-This script calculates AR1 (lag-1 autocorrelation) coefficients and variance using a sliding window approach for ecosystem resilience assessment.
+This script calculates AR1 (lag-1 autocorrelation) coefficients and variance using a sliding window approach for ecosystem resilience.
 
 ### Key Features:
 
-Sliding temporal window analysis for AR1 coefficient calculationC
+Sliding temporal window analysis for AR1 coefficient calculation
 
 Variance computation within each window
 
@@ -126,7 +126,7 @@ python XGBoost_SHAP_ADs.py
 
 ### Input:
 
-CSV file containing features (X1, X2, X3, ...) and target variable (Y)
+CSV file containing features (X1, X2, X3, ...) and target variable (Y) ##'./input/xgb_data_sigma4div2_ws07.csv'
 
 ### Output:
 
