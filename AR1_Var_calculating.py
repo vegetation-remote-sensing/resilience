@@ -138,7 +138,7 @@ def process_series(input_file, output_dir, vegetation_index, series_id, window_s
         var_file = vegetation_index + "_Var_" + str(window_size) + "_STL_" + str(series_id).zfill(7) + ".csv"
 
         # Skip if already processed
-        if Path(ar1_file).exists() and Path(var_file).exists():
+        if Path(ar1_dir + ar1_file).exists() and Path(var_dir + var_file).exists():
             print(f"Series {series_id} already processed, skipping")
             return True
 
@@ -209,6 +209,7 @@ if __name__ == '__main__':
             ResultsList.append(u)
         MyPool.close()
         MyPool.join()
+
 
 
 
