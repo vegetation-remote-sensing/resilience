@@ -35,7 +35,7 @@ function calculate_resilience_trends(config)
     
     %% Initialize parameters
     years = config.baseline_start:config.analysis_end;
-    analysis_years = config.baseline_end:config.analysis_end;
+    analysis_years = config.analysis_start:config.analysis_end;
     
     fprintf('Calculating resilience trends from %d to %d\n', ...
             config.baseline_start, config.analysis_end);
@@ -313,3 +313,4 @@ function createOutputDirs(dir_list)
         end
     end
 end
+
