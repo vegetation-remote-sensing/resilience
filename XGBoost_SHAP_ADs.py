@@ -66,8 +66,8 @@ print(f"Train R2: {train_r2}, Test R2: {test_r2}")
 explainer = shap.TreeExplainer(best_model)
 shap_values = explainer.shap_values(x_all)
 
-# 输出SHAP值的摘要图
-shap.summary_plot(shap_values, x_train, feature_names=x_columns)
+# # 输出SHAP值的摘要图
+# shap.summary_plot(shap_values, x_train, feature_names=x_columns)
 
 # 保存SHAP的结果
 shap_values_df = pd.DataFrame(shap_values, columns=x_columns)
@@ -83,4 +83,5 @@ shap_importance_df.to_csv(f"{output_path}/shap_importance.csv", index=False)
 
 # 显示前10个最重要特征
 print(shap_importance_df.head(10))
+
 
