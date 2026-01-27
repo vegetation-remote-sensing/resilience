@@ -6,11 +6,6 @@ Autoregressive Model (AR1) Analysis for Time Series Resilience Indicators
 This script calculates autoregressive lag-1 (AR1) coefficients and variance
 using sliding window approach for ecosystem resilience assessment.
 
-Author: Yiling Cai
-Institution: School of Geography and Remote Sensing, Guangzhou University, Guangzhou 510006, China;
-             Guangdong Guodi Science Technology Co., Ltd, Guangzhou 510075, China;
-Date: 2026-01-16
-
 Requirements:
     - Python >= 3.7
     - pandas >= 1.3.0
@@ -209,6 +204,7 @@ if __name__ == '__main__':
             ResultsList.append(u)
         MyPool.close()
         MyPool.join()
+
 
 
 
