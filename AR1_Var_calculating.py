@@ -146,7 +146,8 @@ def process_series(input_file, output_dir, vegetation_index, series_id, window_s
         df = pd.read_csv(input_file, index_col=0)
 
         # Extract time series for analysis period
-        series_data = df.loc[date_start:date_end, series_id].copy(deep=True)
+        df_data = df.loc[date_start:date_end, series_id].copy(deep=True)
+        series_data = np.array(df_data)
 
         # Calculate AR1 and variance
         ar1, var = sliding_window_analysis(series_data, series_id, window_size)
@@ -162,8 +163,8 @@ def process_series(input_file, output_dir, vegetation_index, series_id, window_s
 
         print(f"Successfully processed series {series_id}")
 
-        del path_ar, oname_ar, path_var, oname_var, df, df_r
-        del residual_denoised, ar, var, df_ar, df_var
+        del ar1_dir, ar1_file, var_dir, var_file, df, df_data
+        del series_data, ar1, var, df_ar1, df_var
         gc.collect()
 
         return True
@@ -179,15 +180,15 @@ if __name__ == '__main__':
     vegetation_index = "kNDVI"
     y_start = 1982
     y_end = 2022
-    date_start = "-".join([str(y1), "01", "01"])
-    date_end = "-".join([str(y2), "12", "01"])
+    date_start = "-".join([str(y_start), "01", "01"])
+    date_end = "-".join([str(y_end), "12", "01"])
 
     catalog_file = "./path/to/input/kndvi_data.csv"
     input_dir = "./path/to/input/residual/files/"
     output_dir = "./path/to/output/"
 
     # Load list of series identifiers from catalog file.
-    df = pd.read_csv(catalog_file, index_col='series_id')
+    df = pd.read_csv(catalog_file, index_col=0) #index_col = "series_ids"
     df_transposed = df.T
     series_list = df_transposed.columns.tolist()
 
@@ -203,10 +204,11 @@ if __name__ == '__main__':
                 print(f"Input file not found: {input_file}")
                 continue
 
-            u = MyPool.apply_async(process_series, (input_file, output_dir, vegetation_index, series_id, window_size,
+            u = MyPool.apply_async(process_series, (input_file, output_dir, vegetation_index, str(series_id), window_size,
                                                     date_start, date_end,))
             ResultsList.append(u)
         MyPool.close()
         MyPool.join()
+
 
 
