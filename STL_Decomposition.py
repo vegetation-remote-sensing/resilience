@@ -6,11 +6,6 @@ STL Decomposition for Time Series Data
 This script performs Seasonal-Trend decomposition using LOESS (STL) on
 vegetation index time series data.
 
-Author: Yiling Cai
-Institution: School of Geography and Remote Sensing, Guangzhou University, Guangzhou 510006, China;
-             Guangdong Guodi Science Technology Co., Ltd, Guangzhou 510075, China;
-Date: 2026-01-16
-
 Requirements:
     - Python >= 3.7
     - pandas >= 1.3.0
@@ -188,6 +183,7 @@ if __name__ == '__main__':
       ResultsList.append(u)
     MyPool.close()
     MyPool.join()
+
 
 
 
