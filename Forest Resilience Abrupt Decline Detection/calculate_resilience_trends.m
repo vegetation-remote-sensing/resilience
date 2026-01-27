@@ -293,3 +293,23 @@ function saveTrendMaps(slope, zstat, combined, year, config, ...
     geotiffwrite(filepath, combined, spatial_ref, ...
                 'GeoKeyDirectoryTag', geo_info.GeoTIFFTags.GeoKeyDirectoryTag);
 end
+
+function [data, spatial_ref, geo_info] = loadReferenceData(filepath)
+    % Load reference GeoTIFF file
+    if ~exist(filepath, 'file')
+        error('Reference file not found: %s', filepath);
+    end
+    
+    [data, spatial_ref] = geotiffread(filepath);
+    geo_info = geotiffinfo(filepath);
+end
+
+function createOutputDirs(dir_list)
+    % Create output directories if they don't exist
+    for i = 1:length(dir_list)
+        if ~exist(dir_list{i}, 'dir')
+            mkdir(dir_list{i});
+            fprintf('Created directory: %s\n', dir_list{i});
+        end
+    end
+end
