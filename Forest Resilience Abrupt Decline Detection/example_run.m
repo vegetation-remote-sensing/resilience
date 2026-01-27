@@ -57,8 +57,8 @@ config_trend.reference_file = './data/reference/land_mask.tif';
 % === Time periods ===
 config_trend.baseline_start = 2000;   % Start of baseline period
 config_trend.baseline_end = 2009;     % End of baseline period
-config_trend.analysis_start = 2010;   % Start of analysis period
-config_trend.analysis_end = 2020;     % End of analysis period
+config_trend.analysis_start = 2010 - 1;   % Start of analysis period
+config_trend.analysis_end = 2020 - 1;     % End of analysis period
 
 % === Data identifiers ===
 config_trend.vegetation_index = 'kNDVI';
@@ -129,6 +129,7 @@ fprintf('Trend results: %s\n', config_trend.output_dir);
 fprintf('AD-noAD resilience results: %s\n', config_paired.output_dir);
 
 fprintf('\nTotal processing time: %.1f minutes\n', elapsed/60);
+
 
 
 
