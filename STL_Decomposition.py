@@ -167,8 +167,8 @@ if __name__ == '__main__':
     vegetation_index = "kNDVI"
     y_start = 1982
     y_end = 2022
-    date_start = "-".join([str(y1), "01", "01"])
-    date_end = "-".join([str(y2), "12", "01"])
+    date_start = "-".join([str(y_start), "01", "01"])
+    date_end = "-".join([str(y_end), "12", "01"])
 
     input_file = "./path/to/input/kndvi_data.csv"
     output_dir = "./path/to/output/"
@@ -182,10 +182,12 @@ if __name__ == '__main__':
     MyPool = multiprocessing.Pool(processes=n_processes)
     ResultsList = []
     for series_id in series_ids:
-            u = MyPool.apply_async(decompose_series, (vegetation_index, series_id, data, date_start, date_end,
-                                                      period, smooth_length, output_dir,))
-            ResultsList.append(u)
+        data = df_transposed.loc[:, [series_id]].copy(deep=True)
+        u = MyPool.apply_async(decompose_series, (vegetation_index, series_id, data, date_start, date_end,
+                                                  period, smooth_length, output_dir,))
+      ResultsList.append(u)
     MyPool.close()
     MyPool.join()
+
 
 
