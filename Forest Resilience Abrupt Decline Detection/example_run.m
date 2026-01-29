@@ -124,11 +124,9 @@ extract_paired_AD_noAD_resilience(config_paired);
 elapsed = toc;
 
 fprintf('\n=== Analysis Complete ===\n');
-fprintf('AD results: %s\n', config_ad.output_dir);
-fprintf('Trend results: %s\n', config_trend.output_dir);
 fprintf('AD-noAD resilience results: %s\n', config_paired.output_dir);
-
 fprintf('\nTotal processing time: %.1f minutes\n', elapsed/60);
+
 
 
 
