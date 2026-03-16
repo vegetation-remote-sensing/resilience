@@ -180,7 +180,7 @@ if __name__ == '__main__':
         data = df_transposed.loc[:, [series_id]].copy(deep=True)
         u = MyPool.apply_async(decompose_series, (vegetation_index, series_id, data, date_start, date_end,
                                                   period, smooth_length, output_dir,))
-      ResultsList.append(u)
+        ResultsList.append(u)
     MyPool.close()
     MyPool.join()
 
