@@ -191,7 +191,7 @@ if __name__ == '__main__':
     for window_size in window_sizes:
 
         # Process in parallel
-        MyPool = multiprocessing.Pool(processes=pp)
+        MyPool = multiprocessing.Pool(processes=n_processes)
         ResultsList = []
         for series_id in series_list:
             input_file = input_dir + vegetation_index + "_STL_resid_" + str(series_id).zfill(7) + ".csv"
