@@ -3,8 +3,21 @@
 """
 STL Decomposition for Time Series Data
 
-This script performs Seasonal-Trend decomposition using LOESS (STL) on
-vegetation index time series data.
+This script performs robust Seasonal-Trend decomposition using LOESS (STL;
+Cleveland et al., 1990) on vegetation index time series and saves the trend,
+seasonal and residual components of every series (pixel) as separate files.
+
+Workflow:
+    Step 1. Set the analysis parameters and file paths.
+    Step 2. Load the input table (one row per series, one column per month).
+    Step 3. Decompose every series in parallel:
+            3.1 extract the series for the analysis period;
+            3.2 run the robust STL decomposition;
+            3.3 save the trend, seasonal and residual components.
+    Step 4. Summarise how many series succeeded or failed.
+
+Usage:
+    python STL_Decomposition.py
 
 Requirements:
     - Python >= 3.7
@@ -12,179 +25,205 @@ Requirements:
     - numpy >= 1.21.0
     - statsmodels >= 0.13.0
 
+Reference:
+    Cleveland, R. B., Cleveland, W. S., McRae, J. E. & Terpenning, I. STL: a
+    seasonal-trend decomposition procedure based on loess. J. Off. Stat. 6,
+    3-73 (1990).
 """
 
-import gc
-import os
+import math
 import multiprocessing
-import shutil
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from statsmodels.tsa.seasonal import STL
-import numpy as np
-from pathlib import Path
+
 
 def calc_trend_length(period, seasonal_length):
     """
-    Calcualte the length of the trend smoother.
+    Calculate the length of the trend smoother (n_t).
 
-    based on Cleveland et al., 1990.
+    Based on Cleveland et al., 1990: n_t is the smallest odd integer greater
+    than or equal to 1.5 * n_p / (1 - 1.5 / n_s).
 
     Args:
-            period: Period of seasonal component
-            seasonal_length: Length of seasonal smoother
+        period: Period of the seasonal component (n_p)
+        seasonal_length: Length of the seasonal smoother (n_s)
 
     Returns:
-        Odd integer for trend smoother length
+        Odd integer for the trend smoother length
     """
-    nt = (1.5 * period) / (1 - 1.5 * (1 / seasonal_length)) + 1 #Force fractions to be rounded up
-    if int(nt) % 2. == 1:
-        return int(nt)
-    elif int(nt) % 2. == 0:
-        return int(nt) + 1
+    nt = math.ceil((1.5 * period) / (1 - 1.5 / seasonal_length))
+    return nt if nt % 2 == 1 else nt + 1
+
 
 def calc_lowpass_length(period):
     """
-       Calculate the length of the low-pass filter.
+    Calculate the length of the low-pass filter (n_l).
 
-       Based on Cleveland et al., 1990.
+    Based on Cleveland et al., 1990: n_l is the smallest odd integer greater
+    than or equal to n_p.
 
-       Args:
-           period: Period of seasonal component
+    Args:
+        period: Period of the seasonal component (n_p)
 
-       Returns:
-           Odd integer for low-pass filter length
+    Returns:
+        Odd integer for the low-pass filter length
     """
-    if int(period) % 2. == 1:
-        return int(period)
-    elif int(period) % 2. == 0:
-        return int(period) + 1
+    nl = math.ceil(period)
+    return nl if nl % 2 == 1 else nl + 1
+
 
 def perform_stl(series, period, smooth_length, series_id):
-    ### Perform robust STL decomposition on a time series. ###
-    # series:              # Input time series data
-    # period = 12              # period of seasonal component
-    # seasonal_length = 7              # length of seasonal smoother
-    # series_id:              # Identifier for the time series
-    # nt = calc_trend_length(period, seasonal_length)  # length of trend smoother
-    # nl = calc_lowpass_length(period)     # length of low-pass filter
-    # isdeg = 1           # Degree of locally-fitted polynomial in seasonal smoothing.
-    # itdeg = 1           # Degree of locally-fitted polynomial in trend smoothing.
-    # ildeg = 1           # Degree of locally-fitted polynomial in low-pass smoothing.
-    # nsjump = None       # Skipping value for seasonal smoothing.
-    # ntjump = 1          # Skipping value for trend smoothing. If None, ntjump= 0.1*nt
-    # nljump = 1          # Skipping value for low-pass smoothing. If None, nljump= 0.1*nl
-    # robust = True       # Flag indicating whether robust fitting should be performed.
-    # ni = 1              # Number of loops for updating the seasonal and trend  components.
-    # no = 3              # Number of iterations of robust fitting. The value of no should
-    #                       be a nonnegative integer. If the data are well behaved without
-    #                       outliers, then robustness iterations are not needed. In this case
-    #                       set no=0, and set ni=2-5 depending on how much security you want
-    #                       that the seasonal-trend looping converges. If outliers are present
-    #                       then no=3 is a very secure value unless the outliers are radical,
-    #                       in which case no=5 or even 10 might be better. If no>0 then set ni
-    #                       to 1 or 2. If None, then no is set to 15 for robust fitting,
-    #                       to 0 otherwise.
-    ### Returns:             STL decomposition result or None if failed ###
+    """
+    Perform robust STL decomposition on one time series.
+
+    Parameter settings (names follow Cleveland et al., 1990):
+        n_p (period)        = period          period of the seasonal component
+        n_s (seasonal)      = smooth_length   length of the seasonal smoother
+        n_t (trend)         = calc_trend_length(period, smooth_length)
+        n_l (low_pass)      = calc_lowpass_length(period)
+        degree              = 1               locally linear fitting for the
+                                              seasonal, trend and low-pass
+                                              smoothers
+        jump                = 1               LOESS evaluated at every point
+                                              (no interpolation)
+        robust              = True            robustness weights down-weight
+                                              outliers
+        n_i (inner loops)   = 2               statsmodels default when robust
+        n_o (outer loops)   = 15              statsmodels default when robust
+
+    Args:
+        series: Input time series (no missing values, chronological order)
+        period: Period of the seasonal component
+        smooth_length: Length of the seasonal smoother
+        series_id: Identifier of the time series (used in messages only)
+
+    Returns:
+        STL decomposition result (with .trend, .seasonal and .resid),
+        or None if the decomposition failed
+    """
     try:
-        res = STL(series, period, seasonal=smooth_length, trend=calc_trend_length(period, smooth_length),
-                  low_pass=calc_lowpass_length(period), seasonal_deg=1, trend_deg=1, low_pass_deg=1,
-                  seasonal_jump=1,trend_jump=1, low_pass_jump=1, robust=True)
-        return res.fit()
+        # Step 3.2a: STL cannot handle gaps, so reject series with missing
+        # values instead of filling them implicitly.
+        values = np.asarray(series, dtype=float).ravel()
+        if not np.isfinite(values).all():
+            raise ValueError("series contains missing or non-finite values")
+
+        # Step 3.2b: Configure the robust STL model.
+        model = STL(values,
+                    period=period,
+                    seasonal=smooth_length,
+                    trend=calc_trend_length(period, smooth_length),
+                    low_pass=calc_lowpass_length(period),
+                    seasonal_deg=1, trend_deg=1, low_pass_deg=1,
+                    seasonal_jump=1, trend_jump=1, low_pass_jump=1,
+                    robust=True)
+
+        # Step 3.2c: Fit the model (2 inner and 15 robustness iterations).
+        return model.fit()
     except Exception as e:
         print(f"STL decomposition failed for series {series_id}: {e}")
         return None
 
-def decompose_series(vegetation_index, series_id, data, date_start, date_end, period, smooth_length, output_dir):
+
+def decompose_series(vegetation_index, series_id, data, date_start, date_end,
+                     period, smooth_length, output_dir):
     """
-        Decompose a single time series and save results.
+    Decompose a single time series and save the results.
 
-        Args:
-            series_id: str, Identifier for the series
-            data: pd.DataFrame, Input dataframe containing the time series
-            date_start: Starting date of analysis
-            date_end: Ending date of analysis
-            period: period of seasonal component
-            seasonal_length: length of seasonal smoother
-            output_dir: str, Base directory for output files
+    Args:
+        vegetation_index: Name of the vegetation index (used in file names)
+        series_id: Identifier of the series
+        data: pd.DataFrame with one column (series_id); the index holds the
+              metadata fields (e.g. XLon, YLat) followed by the dates
+        date_start: First date of the analysis period (YYYY-MM-DD)
+        date_end: Last date of the analysis period (YYYY-MM-DD)
+        period: Period of the seasonal component
+        smooth_length: Length of the seasonal smoother
+        output_dir: Base directory for the output files
 
-        Returns:
-            True if successful, False otherwise
+    Returns:
+        True if successful, False otherwise
     """
     try:
-        # Extract time series for specified date range
-        df_series = data.loc[date_start:date_end, [series_id]].copy(deep=True)
+        # Step 3.1: Extract the time series for the analysis period.
+        df_series = data.loc[date_start:date_end, series_id].astype(float)
 
-        df_trend = data.copy(deep=True)
-        df_trend.loc[date_start:date_end, series_id] = np.nan
-        df_seasonal = data.copy(deep=True)
-        df_seasonal.loc[date_start:date_end, series_id] = np.nan
-        df_resid = data.copy(deep=True)
-        df_resid.loc[date_start:date_end, series_id] = np.nan
-
-        # Perform STL decomposition
+        # Step 3.2: Perform the robust STL decomposition.
         res = perform_stl(df_series, period, smooth_length, str(series_id))
+        if res is None:
+            return False
 
-        df_trend.loc[date_start:date_end, series_id] = res.trend
-        df_seasonal.loc[date_start:date_end, series_id] = res.seasonal
-        df_resid.loc[date_start:date_end, series_id] = res.resid
+        # Step 3.3: Save each component. Every output file keeps the layout
+        # of the input (metadata rows followed by one row per date); only
+        # the values inside the analysis period are replaced.
+        components = {"trend": res.trend,
+                      "season": res.seasonal,
+                      "resid": res.resid}
+        for name, values in components.items():
+            df_out = data.copy(deep=True)
+            df_out.loc[date_start:date_end, series_id] = values
 
-        # Save results
-        outpath_trend = output_dir + "trend/"
-        Path(outpath_trend).mkdir(parents=True, exist_ok=True)
-        filename_trend = "_".join([vegetation_index, "STL", "trend", str(series_id).zfill(7)]) + ".csv"
-        df_trend.to_csv(outpath_trend + filename_trend, sep=',')
-
-        outpath_season = output_dir + "season/"
-        Path(outpath_season).mkdir(parents=True, exist_ok=True)
-        filename_season = "_".join([vegetation_index, "STL", "season", str(series_id).zfill(7)]) + ".csv"
-        df_seasonal.to_csv(outpath_season + filename_season, sep=',')
-
-        outpath_resid = output_dir + "resid/"
-        Path(outpath_resid).mkdir(parents=True, exist_ok=True)
-        filename_resid = "_".join([vegetation_index, "STL", "resid", str(series_id).zfill(7)]) + ".csv"
-        df_resid.to_csv(outpath_resid + filename_resid, sep=',')
+            outpath = Path(output_dir) / name
+            outpath.mkdir(parents=True, exist_ok=True)
+            filename = "_".join([vegetation_index, "STL", name,
+                                 str(series_id).zfill(7)]) + ".csv"
+            df_out.to_csv(outpath / filename, sep=',')
 
         print(f"Successfully processed series {series_id}")
-        del df_series, df_trend, df_seasonal, df_resid, res
-        del outpath_trend, filename_trend, outpath_season, filename_season, outpath_resid, filename_resid
-        gc.collect()
         return True
     except Exception as e:
         print(f"Failed to decompose series {series_id}: {e}")
         return False
 
+
 if __name__ == '__main__':
-    # Initialize
-    n_processes = 50
-    period = 12
-    smooth_length = 7
-    vegetation_index = "kNDVI"
-    y_start = 1982
-    y_end = 2022
+    # ------------------------------------------------------------------
+    # Step 1: Set the analysis parameters and file paths.
+    # ------------------------------------------------------------------
+    n_processes = max(1, int(multiprocessing.cpu_count() * 0.8))  # parallel workers
+    period = 12                  # monthly data: 12 observations per year
+    smooth_length = 7            # length of the seasonal smoother (odd, >= 7)
+    vegetation_index = "kNDVI"   # label used in the output file names
+    y_start = 1982               # first year of the analysis period
+    y_end = 2022                 # last year of the analysis period
     date_start = "-".join([str(y_start), "01", "01"])
     date_end = "-".join([str(y_end), "12", "01"])
 
-    input_file = "./path/to/input/kndvi_data.csv"
-    output_dir = "./path/to/output/"
+    input_file = "./input/kndvi_data.csv"
+    output_dir = "./output/"
 
-    # Load input data
+    # ------------------------------------------------------------------
+    # Step 2: Load the input table.
+    # Rows are series (PID); columns are XLon, YLat and one column per month
+    # (YYYY-MM-DD). The table is transposed so that each series is a column.
+    # ------------------------------------------------------------------
     df = pd.read_csv(input_file, index_col=0)
     df_transposed = df.T
     series_ids = df_transposed.columns.tolist()
+    print(f"Loaded {len(series_ids)} series from {input_file}")
 
-    # Process in parallel
+    # ------------------------------------------------------------------
+    # Step 3: Decompose every series in parallel.
+    # ------------------------------------------------------------------
     MyPool = multiprocessing.Pool(processes=n_processes)
     ResultsList = []
     for series_id in series_ids:
         data = df_transposed.loc[:, [series_id]].copy(deep=True)
-        u = MyPool.apply_async(decompose_series, (vegetation_index, series_id, data, date_start, date_end,
-                                                  period, smooth_length, output_dir,))
-        ResultsList.append(u)
+        u = MyPool.apply_async(decompose_series,
+                               (vegetation_index, series_id, data, date_start,
+                                date_end, period, smooth_length, output_dir,))
+        ResultsList.append((series_id, u))
     MyPool.close()
     MyPool.join()
 
-
-
-
-
+    # ------------------------------------------------------------------
+    # Step 4: Summarise the run and list the series that failed.
+    # ------------------------------------------------------------------
+    failed = [series_id for series_id, u in ResultsList if not u.get()]
+    print(f"Finished: {len(series_ids) - len(failed)} succeeded, "
+          f"{len(failed)} failed")
+    if failed:
+        print(f"Failed series: {failed}")
