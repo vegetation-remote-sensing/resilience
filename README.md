@@ -1,258 +1,213 @@
 # Overview
 
-This project contains Python scripts for time series analysis and machine learning model training, including 1-lag autocorrelation (AR1) analysis, STL (Seasonal-Trend decomposition using LOESS) decomposition, XGBoost model training with hyperparameter tuning, and SHAP (SHapley Additive exPlanations) model interpretation.
+Code for analysing forest resilience and abrupt declines (ADs) from
+satellite vegetation-index time series. The repository contains:
+
+1. **STL decomposition** of monthly kNDVI series into trend, seasonal and
+   residual components (`STL_Decomposition.py`).
+2. **Resilience indicators**: sliding-window lag-1 autocorrelation (AR1, also
+   called temporal autocorrelation, TAC) and variance of the STL residuals
+   (`AR1_Var_calculating.py`).
+3. **Driver analysis**: an XGBoost regression model of TAC preceding abrupt
+   declines, interpreted with SHAP values (`XGBoost_SHAP_ADs.py`).
+4. **Abrupt-decline detection and paired AD/noAD comparison** in MATLAB
+   (`Forest Resilience Abrupt Decline Detection/`, documented in its own
+   `Readme.md`).
+   
+Each Python script is self-contained, and every step is numbered in the code
+comments (Step 1, Step 2, ...), matching the workflow listed at the top of the
+script. 
 
 # Project Structure
-├── STL_Decomposition.py # STL decomposition for time series  
-├── AR1_Var_calculating.py # AR1 autoregressive analysis and variance calculation  
-├── XGBoost_SHAP_ADs.py # XGBoost training with SHAP feature importance analysis  
-├── input/ # Input data directory  
-└── output/ # Output results directory  
+
+```
+├── STL_Decomposition.py        # Step 1: STL decomposition
+├── AR1_Var_calculating.py      # Step 2: sliding-window AR1 and variance
+├── XGBoost_SHAP_ADs.py         # XGBoost model and SHAP interpretation
+├── Forest Resilience Abrupt Decline Detection/   # MATLAB code (see its Readme.md)
+├── tests/test_pipeline.py      # automated tests for Steps 1 and 2
+├── requirements.txt            # tested package versions
+├── input/                      # demo input data
+│   ├── kndvi_data.csv                  # five example kNDVI series
+│   └── xgb_data_sigma4div2_WS07.csv    # samples for the XGBoost model
+├── output/                     # demo outputs
+└── LICENSE
+```
 
 
-# Requirements
+# 1. System Requirements
 
-- Python >= 3.7
-- pandas >= 1.3.0
-- numpy >= 1.21.0
-- scipy >= 1.7.0
-- statsmodels >= 0.13.0
-- xgboost >= 1.5.0
-- scikit-learn >= 0.24.0
-- shap >= 0.39.0
+| | |
+|---|---|
+| Operating system | Any OS that runs Python (Windows, Linux, macOS). Tested on Linux (x86-64). |
+| Python | >= 3.9; tested with 3.13.16 |
+| Python packages | numpy 2.5.3, pandas 3.0.5, scipy 1.18.1, statsmodels 0.15.0, scikit-learn 1.9.1, xgboost 3.4.1, shap 0.53.0 (pytest 9.1.1 for the tests); see `requirements.txt` |
+| MATLAB (part 4 only) | R2024a or later with the toolboxes listed in the MATLAB `Readme.md` |
+| Hardware | No non-standard hardware is required. All Python scripts run on a normal desktop computer; they use several CPU cores when available. |
 
-# Install dependencies using:
-pip install pandas numpy scipy statsmodels xgboost scikit-learn shap  
 
-# Script Description  
+# 2. Installation Guide
 
-## 1. STL_Decomposition.py
+```bash
+git clone <repository-url>
+cd resilience-main
+python -m venv .venv
+# Windows: .venv\Scripts\activate      Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-This script performs Seasonal-Trend decomposition using LOESS on vegetation index time series data.
+Typical install time on a normal desktop computer: a few minutes.
 
-### Key Features:
+# 3. Demo
 
-Robust STL decomposition
+The demo data are in `input/`. All scripts read from `./input/` and write to
+`./output/` by default, so they can be run without editing:
 
-Automatic calculation of trend and low-pass filter lengths
-
-Parallel processing for multiple time series
-
-Separation of trend, seasonal, and residual components
-
-### Usage:
-
+```bash
 python STL_Decomposition.py
-
-### Input:
-
-Time series data in CSV format  ## './input/kndvi_data.csv'
-
-### Output:
-
-trend/: Trend component files
-
-season/: Seasonal component files
-
-resid/: Residual component files
-
-### Key Parameters:
-
-period: Period of seasonal component (default: 12)
-
-smooth_length: Length of seasonal smoother (default: 7)
-
-n_processes: Number of parallel processes (default: 50)
-
-date_start, date_end: Analysis period (default: 1982, 2022)
-
-vegetation_index: vegetation index (default: kNDVI)
-
-## 2. AR1_Var_calculating.py
-
-This script calculates AR1 (lag-1 autocorrelation) coefficients and variance using a sliding window approach for ecosystem resilience.
-
-### Key Features:
-
-Sliding temporal window analysis for AR1 coefficient calculation
-
-Variance computation within each window
-
-Support for multiple window sizes
-
-Parallel processing for efficiency
-
-### Usage:
-
 python AR1_Var_calculating.py
-
-### Input:
-
-Time series residual data from STL decomposition
-
-### Output:
-
-AR1 coefficient time series
-
-Variance time series
-
-### Key Parameters:
-
-window_sizes: List of sliding window sizes (e.g., [36, 48, 60, 72, 84])
-
-n_processes: Number of parallel processes (default: 50)
-
-date_start, date_end: Analysis period (default: 1982, 2022)
-
-vegetation_index: vegetation index (default: kNDVI)
-
-## 3. XGBoost_SHAP_ADs.py
-
-This script trains an XGBoost regression model using RandomizedSearchCV for hyperparameter optimization, evaluates model performance, and generates SHAP explanations.
-
-### Key Features:
-
-Automated hyperparameter tuning using RandomizedSearchCV
-
-Model performance evaluation (RMSE, R²)
-
-SHAP value calculation for model interpretation
-
-Feature importance ranking based on SHAP values
-
-### Usage:
-
 python XGBoost_SHAP_ADs.py
+```
 
-### Input:
+## Expected output
 
-CSV file containing features (X1, X2, X3, ...) and target variable (Y) ##'./input/xgb_data_sigma4div2_ws07.csv'
+```
+output/
+├── trend/   kNDVI_STL_trend_<id>.csv        STL trend
+├── season/  kNDVI_STL_season_<id>.csv       STL seasonal component
+├── resid/   kNDVI_STL_resid_<id>.csv        STL residual
+├── kNDVI_AR1_<w>/ kNDVI_AR1_<w>_STL_<id>.csv    AR1 for window size w (36, 48, 60, 72, 84 months)
+├── kNDVI_Var_<w>/ kNDVI_Var_<w>_STL_<id>.csv    variance for window size w
+├── xgb_random_state.txt        random seed used by the XGBoost run
+├── xgb_model.json              fitted XGBoost model
+├── xgb_model_summary.json      settings, selected hyperparameters, RMSE/R2, software versions
+├── xgb_train_test_split.csv    training/test membership of every sample
+├── xgb_cv_results.csv          cross-validation score of every hyperparameter candidate
+├── shap_values.csv             SHAP value of every feature for every sample
+└── shap_importance.csv         mean absolute SHAP value of every feature
+```
 
-### Output:
+The STL, AR1 and variance files for the five demo series (60-month window)
+are provided in `output/` for comparison; re-running the two scripts
+reproduces them to floating-point precision.
 
-shap_values.csv: SHAP values for each sample
+## Expected run time
 
-shap_importance.csv: Feature importance scores
+- `STL_Decomposition.py` and `AR1_Var_calculating.py`: a few seconds for the
+  demo data.
+- `XGBoost_SHAP_ADs.py`: 50 hyperparameter candidates × 5 cross-validation
+  folds are fitted, so the run time depends mainly on the number of CPU cores
+  (`n_jobs`).
 
-SHAP summary plot
+# 4. Instructions for Use
 
-### Key Parameters:
+All settings are in the block marked **Step 1** of each script.
 
-n_iter: Number of parameter combinations to try (default: 50)
+## 4.1 STL_Decomposition.py
 
-test_size: Proportion of test set (default: 0.2)
+| Variable | Meaning | Default |
+|---|---|---|
+| `input_file` | input table | `./input/kndvi_data.csv` |
+| `output_dir` | output folder | `./output/` |
+| `y_start`, `y_end` | analysis period | 1982, 2022 |
+| `period` | observations per seasonal cycle (n_p) | 12 |
+| `smooth_length` | length of the seasonal smoother (n_s) | 7 |
+| `vegetation_index` | label used in file names | `kNDVI` |
+| `n_processes` | parallel workers | 80% of the CPU cores |
 
-random_state: Random seed for reproducibility (default: 4016)
+A series that cannot be decomposed (for example because it contains missing
+values) is listed at the end of the run and does not stop the other series.
 
-# Workflow
+## 4.2 AR1_Var_calculating.py
 
-## 1. Data Preprocessing
+Run after `STL_Decomposition.py`.
 
-Prepare time series data in CSV format
+| Variable | Meaning | Default |
+|---|---|---|
+| `catalog_file` | table listing the series identifiers | `./input/kndvi_data.csv` |
+| `input_dir` | STL residuals | `./output/resid/` |
+| `output_dir` | output folder | `./output/` |
+| `window_sizes` | sliding-window lengths (months) | 36, 48, 60, 72, 84 |
+| `y_start`, `y_end` | analysis period | 1982, 2022 |
+| `n_processes` | parallel workers | 80% of the CPU cores |
 
-## 2. STL Decomposition
+Series whose AR1 and variance files already exist are skipped, so an
+interrupted run can be resumed.
 
-python STL_Decomposition.py
+## 4.3 XGBoost_SHAP_ADs.py
 
--Separates time series into trend, seasonal, and residual components
+| Variable | Meaning | Default |
+|---|---|---|
+| `input_file` | sample table | `./input/xgb_data_sigma4div2_WS07.csv` |
+| `output_dir` | output folder | `./output/` |
+| `id_column`, `y_column` | sample identifier and target | `PID`, `TAC_AD` |
+| `x_columns` | predictors | 61 features (listed in the script) |
+| `random_state` | seed of every random step | `None` (drawn at random from 0–5000 and recorded) |
+| `test_size` | proportion of samples held out for testing | 0.2 |
+| `n_iter` | hyperparameter candidates sampled | 50 |
+| `n_splits` | cross-validation folds | 5 |
+| `n_jobs` | parallel workers of the search | 40 (reduce to the number of available cores) |
 
-## 3. AR1 and Variance Calculation
+**Reproducing a run.** With `random_state = None` a new seed is drawn at each
+run, printed, and saved to `output/xgb_random_state.txt` and
+`output/xgb_model_summary.json`. To reproduce a run exactly, set
+`random_state` to the recorded value and run the script again with the same
+package versions, or load the saved model directly:
 
-python AR1_Var_calculating.py
+```python
+import xgboost as xgb
+model = xgb.XGBRegressor()
+model.load_model("output/xgb_model.json")
+```
 
--Calculates resilience indicators from residuals
+Each run overwrites the XGBoost and SHAP files in `output/`.
 
-## 4. XGBoost Model Training
+## 4.4 MATLAB code
 
-python XGBoost_SHAP_ADs.py
+See `Forest Resilience Abrupt Decline Detection/Readme.md`.
 
--Trains model with optimal hyperparameters
-
--Generates SHAP interpretations
-
-# Configuration
-
-Before running the scripts, update the following paths in each file:
-
-# Example configuration
-
-input_path = "./path/to/input/"
-
-output_path = "./path/to/output/"
 
 # Data Format
 
-## Input CSV Requirements:
+## Time series table (`input/kndvi_data.csv`)
 
-First column: series_id (example: PID = xxxxxxx)
+One row per series. The first column is the series identifier (`PID`);
+columns whose header is a date (`YYYY-MM-DD`) are monthly time steps in
+chronological order without gaps; the other columns (`XLon`, `YLat`) are
+metadata that are copied to the outputs.
 
-Subsequent columns: features (X1, X2, X3, ...) and target variable (Y), or time series data (format:YYYY-MM-DD)
+```
+PID,XLon,YLat,1982-01-01,1982-02-01,1982-03-01,...
+3,-140.875,62.708,0.0034,0.0053,0.0132,...
+1,-123.042,62.792,0.0023,0.0106,0.0110,...
+```
 
-No missing values in critical analysis periods
+Each output file of Steps 1 and 2 holds one series as a single column, with
+the metadata rows followed by one row per date.
 
-### Example1:
+## Sample table (`input/xgb_data_sigma4div2_WS07.csv`)
 
-PID	1982-01-01	1982-02-01	1982-03-01	1982-04-01 ...
+One row per sample, with the identifier (`PID`), the target (`TAC_AD`) and
+the predictor columns.
 
-3	0.0034 	0.0053 	0.0132 	0.0585 
+```
+PID,TAC_AD,TAC_mean,FC,FL,FG,...
+516142,0.3546,0.1514,57.8624,0.0288,2.0814,...
+387407,0.2421,0.0808,87.4868,0.0306,0.4815,...
+```
 
-1	0.0023 	0.0106 	0.0110 	0.0851 
+# References
 
-4	0.0023 	0.0108 	0.0112 	0.1008 
-
-5	0.0032 	0.0106 	0.0119 	0.1098 
-
-2	0.1118 	0.1929 	0.0193 	0.0816 
-
-...
-
-### Example2:
-
-PID	TAC_AD	TAC_mean	FC	FL	FG ...
-
-516142	0.3546 	0.1514 	57.8624 	0.0288 	2.0814 
-
-387407	0.2421 	0.0808 	87.4868 	0.0306 	0.4815 
-
-370881	0.2758 	0.1918 	78.5291 	0.0627 	1.0123 
-
-406671	0.0851 	0.1240 	75.0423 	0.0378 	1.6677 
-
-354255	0.1316 	0.0987 	61.6825 	13.3503 	0.1026 
-
-...
-
-
-## Output Files
-
-### STL Decomposition:
-
-trend/{vegetation_index}_STL_trend_{series_id}.csv: Trend component
-
-season/{vegetation_index}_STL_season_{series_id}.csv: Seasonal component
-
-resid/{vegetation_index}_STL_resid_{series_id}.csv: Residual component
-
-### AR1 Analysis:
-
-{vegetation_index}_AR1_{window_size}/{vegetation_index}_AR1_{window_size}_STL_{series_id}.csv: AR1 coefficients
-
-{vegetation_index}_Var_{window_size}/{vegetation_index}_Var_{window_size}_STL_{series_id}.csv: Variance values
-
-
-### SHAP Analysis:
-
-shap_values.csv: Individual SHAP values for each prediction
-
-shap_importance.csv: Aggregated feature importance scores
-
-# Performance Considerations
-
-Use parallel processing (n_processes) for large datasets
-
-Adjust n_iter in RandomizedSearchCV based on computational resources
-
-Consider memory usage when processing multiple time series simultaneously
+- Cleveland, R. B., Cleveland, W. S., McRae, J. E. & Terpenning, I. STL: a
+  seasonal-trend decomposition procedure based on loess. *J. Off. Stat.* **6**,
+  3–73 (1990).
+- Scheffer, M. et al. Early-warning signals for critical transitions. *Nature*
+  **461**, 53–59 (2009).
+- Chen, T. & Guestrin, C. XGBoost: a scalable tree boosting system. In *Proc.
+  22nd ACM SIGKDD Int. Conf. Knowledge Discovery and Data Mining* 785–794
+  (2016).
+- Lundberg, S. M. et al. From local explanations to global understanding with
+  explainable AI for trees. *Nat. Mach. Intell.* **2**, 56–67 (2020).
 
 # Contact
 
@@ -268,5 +223,7 @@ Email: caiyling6@alumni.sysu.edu.cn
 This project is licensed under the GNU GPLv3 License - see the LICENSE file for details.
 
 # Version History
+
+v1.1.0 (2026-10-10): Numbered step annotations in all Python scripts; recorded random seed and saved model.
 
 v1.0.0 (2026-01-16): Initial release
