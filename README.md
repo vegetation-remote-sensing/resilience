@@ -25,12 +25,15 @@ script.
 ├── AR1_Var_calculating.py      # Step 2: sliding-window AR1 and variance
 ├── XGBoost_SHAP_ADs.py         # XGBoost model and SHAP interpretation
 ├── Forest Resilience Abrupt Decline Detection/   # MATLAB code (see its Readme.md)
-├── tests/test_pipeline.py      # automated tests for Steps 1 and 2
+│   ├── *.m                         # three functions and example_run.m
+│   ├── input/                      # demo rasters (kNDVI, AR1, land mask)
+│   └── results/                    # expected outputs of the MATLAB demo
+├── Figures/                    # source files of Figs. 1-4 (Origin projects, 7z archives)
 ├── requirements.txt            # tested package versions
-├── input/                      # demo input data
+├── input/                      # demo input data (Python)
 │   ├── kndvi_data.csv                  # five example kNDVI series
 │   └── xgb_data_sigma4div2_WS07.csv    # samples for the XGBoost model
-├── output/                     # demo outputs
+├── output/                     # demo outputs (Python)
 └── LICENSE
 ```
 
@@ -42,7 +45,7 @@ script.
 | Operating system | Any OS that runs Python (Windows, Linux, macOS). Tested on Linux (x86-64). |
 | Python | >= 3.9; tested with 3.13.16 |
 | Python packages | numpy 2.5.3, pandas 3.0.5, scipy 1.18.1, statsmodels 0.15.0, scikit-learn 1.9.1, xgboost 3.4.1, shap 0.53.0 (pytest 9.1.1 for the tests); see `requirements.txt` |
-| MATLAB (part 4 only) | R2024a or later with the toolboxes listed in the MATLAB `Readme.md` |
+| MATLAB (part 4 only) | R2020a or later with the toolboxes listed in the MATLAB `Readme.md` |
 | Hardware | No non-standard hardware is required. All Python scripts run on a normal desktop computer; they use several CPU cores when available. |
 
 
@@ -55,8 +58,6 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate      Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
-Typical install time on a normal desktop computer: a few minutes.
 
 # 3. Demo
 
@@ -164,7 +165,15 @@ Each run overwrites the XGBoost and SHAP files in `output/`.
 
 ## 4.4 MATLAB code
 
-See `Forest Resilience Abrupt Decline Detection/Readme.md`.
+All settings (paths, periods, thresholds, neighborhood sizes) are in the
+configuration blocks of `example_run.m`. See
+`Forest Resilience Abrupt Decline Detection/Readme.md`.
+
+## 4.5 Figures
+
+`Figures/Fig1.7z` to `Fig4.7z` contain the Origin project files (`.opju`)
+with the data and layout of Figs. 1-4. Extract them with 7-Zip and open them
+with Origin 2018 or later.
 
 
 # Data Format
