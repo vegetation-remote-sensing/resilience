@@ -12,6 +12,20 @@ function extract_paired_AD_noAD_resilience(config)
 %
 %   This creates matched case-control pairs for analyzing abrupt decline events.
 %
+% Workflow:
+%   Step 1. Validate the configuration and set defaults.
+%   Step 2. Load the reference grid.
+%   Step 3. Create the output directories.
+%   Step 4. Load the resilience trend (deltaTAC) and level (TAC) maps of
+%           year t-1 for every year t of the analysis period.
+%   Step 5. For every combination of n, m and neighborhood size:
+%           5.1 load the AD/noAD classification maps;
+%           5.2 find the first AD year t of every pixel;
+%           5.3 extract deltaTAC and TAC of the AD pixel at t-1;
+%           5.4 find the noAD pixels of year t in the neighborhood and
+%               average their deltaTAC and TAC at t-1;
+%           5.5 save the paired AD and noAD maps.
+%
 % Input:
 %   config - Structure containing configuration parameters:
 %       .ad_classification_dir  : Directory with AD/noAD classification maps
@@ -22,13 +36,13 @@ function extract_paired_AD_noAD_resilience(config)
 %       .baseline_start         : Baseline start year (e.g., 2000)
 %       .analysis_start         : Analysis start year (e.g., 2010)
 %       .analysis_end           : Analysis end year (e.g., 2020)
-%       .sigma_values           : AD threshold n (e.g., 1:6)
-%       .sigma_denominator       : denominator of noAD threshold m (e.g., 2:6)
-%       .window_sizes           : Neighborhood sizes (e.g., [5 7 9])
-%       .vegetation_index       : Index name (e.g., 'kNDVI')
-%       .resilience_indicator   : Indicator name (e.g., 'AR1')
-%       .decomposition_method   : Method (e.g., 'STL')
-%       .temporal_window        : Window parameter (e.g., 60)
+%       .sigma_values           : AD threshold n (default: 1:6)
+%       .sigma_denominator      : denominator of noAD threshold m (default: 2:6)
+%       .window_sizes           : Neighborhood sizes (default: [5 7 9])
+%       .vegetation_index       : Index name (default: 'kNDVI')
+%       .resilience_indicator   : Indicator name (default: 'AR1')
+%       .decomposition_method   : Method (default: 'STL')
+%       .temporal_window        : Window parameter (default: 60)
 %
 % Output:
 %   For each configuration (sigma, m, window size):
@@ -39,39 +53,50 @@ function extract_paired_AD_noAD_resilience(config)
 %   - noAD_δTAC maps: Mean resilience trend of noAD pixels
 %   - noAD_TAC maps: Mean resilience level of noAD pixels
 %
+% Notes:
+%   - noAD pixels are the pixels classified as noAD (value 0) in the year of
+%     the AD event within the window_size x window_size neighborhood
+%     (truncated at the grid edges).
+%   - noAD_count is the number of noAD pixels in the neighborhood; the means
+%     ignore noAD pixels without a valid deltaTAC or TAC value.
+%
+% Requirements: MATLAB R2020a or later, Mapping Toolbox,
+%               Image Processing Toolbox
+%
 % Author: Yiling Cai
 % Institution: School of Geography and Remote Sensing, Guangzhou University, Guangzhou 510006, China;  Guangdong Guodi Science Technology Co., Ltd, Guangzhou 510075, China;
 % Date: 2026-01-16
-% Version: 1.0
+% Version: 1.1
 
-    %% Validate configuration
-    validatePairingConfig(config);
-    
-    %% Initialize
+    %% Step 1: Validate the configuration and set defaults
+    config = validatePairingConfig(config);
+
     fprintf('=== Paired AD-noAD Resilience Extraction ===\n');
     fprintf('Period: %d-%d (baseline: %d)\n', ...
             config.analysis_start, config.analysis_end, config.baseline_start);
     
-    %% Load spatial reference
+    %% Step 2: Load the reference grid
     [ref_data, spatial_ref, geo_info] = loadReferenceData(config.reference_file);
     [n_rows, n_cols] = size(ref_data);
     n_years = config.analysis_end - config.analysis_start + 1;
     
-    fprintf('Grid dimensions: %d × %d\n', n_rows, n_cols);
+    fprintf('Grid dimensions: %d x %d\n', n_rows, n_cols);
     
-    %% Create output directory structure
+    %% Step 3: Create the output directories
     output_dirs = createOutputStructure(config.output_dir);
     
-    %% Load time series data
+    %% Step 4: Load the resilience maps of year t-1 for every year t
+    % Layer i of both arrays belongs to AD year analysis_start + i - 1 and
+    % holds the values of the preceding year (t-1).
     fprintf('\n=== Loading temporal data ===\n');
-    
+
     % Load δTAC (resilience trends)
     trend_data = loadTrendTimeSeries(config, n_rows, n_cols, n_years);
     
     % Load TAC (resilience levels)
     resilience_data = loadResilienceTimeSeries(config, n_rows, n_cols, n_years);
     
-    %% Process each parameter combination
+    %% Step 5: Process each parameter combination
     total_configs = length(config.sigma_values) * ...
                    length(config.sigma_denominator) * ...
                    length(config.window_sizes);
@@ -80,7 +105,7 @@ function extract_paired_AD_noAD_resilience(config)
     for sigma_n = config.sigma_values
         for sigma_m = config.sigma_denominator
             
-            % Load AD/noAD classification time series
+            % Step 5.1: Load the AD/noAD classification maps
             ad_classification = loadADClassificationSeries(config, sigma_n, sigma_m, ...
                                                           n_rows, n_cols, n_years);
             
@@ -88,16 +113,16 @@ function extract_paired_AD_noAD_resilience(config)
                 config_count = config_count + 1;
                 window_size = config.window_sizes(window_idx);
                 
-                fprintf('\n[%d/%d] Processing: n=%d, m=%d, window=%d×%d\n', ...
+                fprintf('\n[%d/%d] Processing: n=%d, m=%d, window=%dx%d\n', ...
                         config_count, total_configs, sigma_n, sigma_m, ...
                         window_size, window_size);
                 
-                % Extract paired metrics
+                % Steps 5.2-5.4: Extract the paired AD and noAD metrics
                 [ad_metrics, noad_metrics] = extractPairedMetrics(...
                     ad_classification, trend_data, resilience_data, ...
                     window_size, config, n_rows, n_cols);
                 
-                % Save results
+                % Step 5.5: Save the results
                 savePairedResults(ad_metrics, noad_metrics, ...
                                  sigma_n, sigma_m, window_size, ...
                                  config, spatial_ref, geo_info, output_dirs);
@@ -111,8 +136,8 @@ end
 
 %% Configuration Validation
 
-function validatePairingConfig(config)
-    % Validate required configuration fields
+function config = validatePairingConfig(config)
+    % Check the required fields and fill in the default values
     
     required_fields = {
         'ad_classification_dir', 'trend_dir', 'resilience_dir', ...
@@ -211,11 +236,10 @@ function trend_array = loadTrendTimeSeries(config, n_rows, n_cols, n_years)
         filepath = fullfile(config.trend_dir, filename);
         
         if ~exist(filepath, 'file')
-            warning('Trend file not found: %s', filename);
-            continue;
+            error('Trend file not found: %s', filepath);
         end
-        
-        trend_array(:, :, i) = imread(filepath);
+
+        trend_array(:, :, i) = readMap(filepath, n_rows, n_cols);
     end
     
     fprintf('    Loaded %d trend maps\n', n_years);
@@ -243,11 +267,10 @@ function resilience_array = loadResilienceTimeSeries(config, n_rows, n_cols, n_y
         filepath = fullfile(config.resilience_dir, filename);
         
         if ~exist(filepath, 'file')
-            warning('Resilience file not found: %s', filename);
-            continue;
+            error('Resilience file not found: %s', filepath);
         end
-        
-        resilience_array(:, :, i) = imread(filepath);
+
+        resilience_array(:, :, i) = readMap(filepath, n_rows, n_cols);
     end
     
     fprintf('    Loaded %d resilience maps\n', n_years);
@@ -260,7 +283,7 @@ function ad_array = loadADClassificationSeries(config, sigma_n, sigma_m, ...
     % File naming: AD_noAD_classification_sigma[n]div[m]_[year].tif
     % Values: 1 = AD, 0 = noAD, NaN = invalid
     
-    fprintf('  Loading AD/noAD classifications (σ=%d, m=%d)...\n', sigma_n, sigma_m);
+    fprintf('  Loading AD/noAD classifications (n=%d, m=%d)...\n', sigma_n, sigma_m);
     
     ad_array = NaN(n_rows, n_cols, n_years);
     
@@ -273,11 +296,10 @@ function ad_array = loadADClassificationSeries(config, sigma_n, sigma_m, ...
         filepath = fullfile(config.ad_classification_dir, filename);
         
         if ~exist(filepath, 'file')
-            warning('AD/noAD classification not found: %s', filename);
-            continue;
+            error('AD/noAD classification not found: %s', filepath);
         end
-        
-        ad_array(:, :, i) = imread(filepath);
+
+        ad_array(:, :, i) = readMap(filepath, n_rows, n_cols);
     end
     
     fprintf('    Loaded %d classification maps\n', n_years);
@@ -310,16 +332,21 @@ function [ad_metrics, noad_metrics] = extractPairedMetrics(...
     % Window parameters
     radius = floor(window_size / 2);
     
+    % Only pixels with at least one AD event need to be processed
+    has_ad = any(ad_classification == 1, 3);
+
     % Progress tracking
-    total_pixels = n_rows * n_cols;
-    processed = 0;
     last_percent = 0;
-    
+
     % Process each pixel
     for row = 1:n_rows
         for col = 1:n_cols
-            
-            % Find first AD year for this pixel
+
+            if ~has_ad(row, col)
+                continue;  % No AD event, skip
+            end
+
+            % Step 5.2: Find the first AD year (t) of this pixel
             [ad_occurred, ad_year_idx, ad_year] = findFirstAD(...
                 ad_classification(row, col, :), config.analysis_start);
             
@@ -330,11 +357,11 @@ function [ad_metrics, noad_metrics] = extractPairedMetrics(...
             % Store AD year
             ad_metrics.year(row, col) = ad_year;
             
-            % Extract AD metrics at t-1
+            % Step 5.3: Extract the AD metrics at t-1
             ad_metrics.deltaTAC(row, col) = trend_data(row, col, ad_year_idx);
             ad_metrics.TAC(row, col) = resilience_data(row, col, ad_year_idx);
             
-            % Find noAD pixels in neighborhood
+            % Step 5.4: Find the noAD pixels in the neighborhood
             [noad_count, mean_deltaTAC, mean_TAC] = findNeighborhoodNoAD(...
                 row, col, ad_year_idx, radius, ...
                 ad_classification, trend_data, resilience_data, ...
@@ -347,13 +374,13 @@ function [ad_metrics, noad_metrics] = extractPairedMetrics(...
                 noad_metrics.TAC(row, col) = mean_TAC;
             end
             
-            % Progress update
-            processed = processed + 1;
-            current_percent = floor(100 * processed / total_pixels);
-            if current_percent > last_percent && mod(current_percent, 100) == 0
-                fprintf('    Progress: %d%%\n', current_percent);
-                last_percent = current_percent;
-            end
+        end
+
+        % Progress update (every 10% of the rows)
+        current_percent = floor(100 * row / n_rows);
+        if current_percent >= last_percent + 10
+            fprintf('    Progress: %d%%\n', current_percent);
+            last_percent = current_percent;
         end
     end
     
@@ -482,6 +509,15 @@ function saveGeoTIFF(data, filepath, spatial_ref, geo_info)
 end
 
 %% Utility Functions
+
+function data = readMap(filepath, n_rows, n_cols)
+    % Read one map and check that it matches the reference grid
+
+    data = imread(filepath);
+    if ~isequal(size(data), [n_rows, n_cols])
+        error('Grid size of %s does not match the reference file.', filepath);
+    end
+end
 
 function [data, spatial_ref, geo_info] = loadReferenceData(filepath)
     % Load reference GeoTIFF for spatial information
